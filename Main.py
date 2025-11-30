@@ -13,7 +13,7 @@ customConfig = {
     "detect_interval": 50,  # 检测间隔,单位毫秒
     "rgb_tolerance": 3,  # 色值容差
     "distance_sq_threshold": 12288,  # 欧式距离阈值
-    "close": "x",  # 关闭程序按键
+    "close": "·",  # 关闭程序按键
     "clear_left_countdown": "z",  # 清除左侧倒计时按键
     "clear_right_countdown": "c",  # 清除右侧倒计时按键
     "clear_all_countdown": "v",  # 清除全部倒计时按键
@@ -109,10 +109,20 @@ points_state = {
         6: -1,
     }
 }
-next_battle_detect = {
+start_battle_detect = {
+    "pos": [(293, 124), (349, 124), (1621, 124), (1565, 124)],
+    "max_rgb": (253, 87, 25),
+    "min_rgb": (250, 78, 19),
+}
+next_round_detect = {
     "pos": [(885, 707), (1003, 675), (947, 832), (1051, 745), (997, 815), (1068, 849), (960, 920)],
-    "max_rgb": (252, 233, 3),
-    "min_rgb": (252, 23, 3),
+    "max_rgb": (253, 233, 5),
+    "min_rgb": (250, 23, 2),
+}
+end_battle_detect = {
+    "pos": [(222, 72), (339, 72), (1204, 79), (1338, 64)],
+    "max_rgb": (253, 203, 5),
+    "min_rgb": (250, 200, 2),
 }
 hashirama_detect_battle = {
     "left": [(72, 65), (72, 75), (82, 65), (82, 75)],
@@ -171,6 +181,7 @@ countdown_init_pos = {
     "right": (250, 30),
 }
 cur_mode = "battle"
+enable_flag = False
 hashirama_detect = hashirama_detect_battle
 points_xy = points_pos_battle
 
@@ -281,6 +292,7 @@ class MainWindow(QMainWindow):
         """
         主要事件
         """
+        global enable_flag
         if event == "screenshot":
             try:
                 self.cur_screenshot = app.primaryScreen().grabWindow(0)
@@ -289,11 +301,26 @@ class MainWindow(QMainWindow):
         elif event == "detect":
             try:
                 if self.cur_screenshot:
-                    if self.detect_special_situation("next_battle_detect", ""):
-                        self.clear_countdown("left")
-                        self.clear_countdown("right")
-                    self.detect_points_color_state()
-                    self.detect_points_num()
+                    if cur_mode == "battle":
+                        if not enable_flag and self.detect_special_situation("start_battle_detect", ""):
+                            enable_flag = True
+                            self.left_points_label.show()
+                            self.right_points_label.show()
+                        if enable_flag and self.detect_special_situation("end_battle_detect", ""):
+                            enable_flag = False
+                            self.clear_countdown("left")
+                            self.clear_countdown("right")
+                            self.left_points_label.hide()
+                            self.right_points_label.hide()
+                        if enable_flag:
+                            if self.detect_special_situation("next_round_detect", ""):
+                                self.clear_countdown("left")
+                                self.clear_countdown("right")
+                            self.detect_points_color_state()
+                            self.detect_points_num()
+                    elif cur_mode == "exercise":
+                        self.detect_points_color_state()
+                        self.detect_points_num()
             except Exception as e:
                 traceback.print_exc()
                 print(f"检测错误: {e}")
@@ -484,6 +511,10 @@ class MainWindow(QMainWindow):
             cur_mode = "exercise"
             hashirama_detect = hashirama_detect_exercise
             points_xy = points_pos_exercise
+            self.clear_countdown("left")
+            self.clear_countdown("right")
+            self.update_points_label("left", 0)
+            self.update_points_label("right", 0)
         elif cur_mode == "exercise":
             base_mode_pic = QPixmap(resource_path("resource/决斗场.png"))
             mode_pic = base_mode_pic.scaled(customConfig["mode_pic_size"][0],
@@ -503,6 +534,10 @@ class MainWindow(QMainWindow):
             cur_mode = "battle"
             hashirama_detect = hashirama_detect_battle
             points_xy = points_pos_battle
+            self.clear_countdown("left")
+            self.clear_countdown("right")
+            self.update_points_label("left", 0)
+            self.update_points_label("right", 0)
 
     def adjust_countdown(self, adjust_time):
         """
@@ -560,10 +595,18 @@ class MainWindow(QMainWindow):
         """
         检测是否满足特殊情况
         """
-        if situation == "next_battle_detect":
-            xy_list = next_battle_detect["pos"]
-            min_rgb_list = [next_battle_detect["min_rgb"]]
-            max_rgb_list = [next_battle_detect["max_rgb"]]
+        if situation == "start_battle_detect":
+            xy_list = start_battle_detect["pos"]
+            min_rgb_list = [start_battle_detect["min_rgb"]]
+            max_rgb_list = [start_battle_detect["max_rgb"]]
+        elif situation == "next_round_detect":
+            xy_list = next_round_detect["pos"]
+            min_rgb_list = [next_round_detect["min_rgb"]]
+            max_rgb_list = [next_round_detect["max_rgb"]]
+        elif situation == "end_battle_detect":
+            xy_list = end_battle_detect["pos"]
+            min_rgb_list = [end_battle_detect["min_rgb"]]
+            max_rgb_list = [end_battle_detect["max_rgb"]]
         elif situation == "hashirama_detect":
             xy_list = hashirama_detect[side]
             min_rgb_list = [hashirama_detect["reborn_hashirama_min_rgb"], hashirama_detect["establish_hashirama_min_rgb"]]
