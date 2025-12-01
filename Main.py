@@ -106,10 +106,10 @@ points_state = {
         6: -1,
     }
 }
-start_battle_detect = {
-    "pos": [(433, 124), (461, 124), (1481, 124), (1453, 124)],
-    "max_rgb": (253, 87, 25),
-    "min_rgb": (130, 40, 10),
+in_battle_detect = {
+    "pos": [(918, 73), (932, 72), (927, 80), (1004, 80), (1013, 74)],
+    "max_rgb": (253, 37, 20),
+    "min_rgb": (212, 13, 2),
 }
 next_round_detect = {
     "pos": [(885, 707), (1003, 675), (947, 832), (1051, 745), (997, 815), (1068, 849), (960, 920)],
@@ -179,7 +179,6 @@ countdown_init_pos = {
     "right": (250, 30),
 }
 cur_mode = "battle"
-enable_flag = False
 hashirama_detect = hashirama_detect_battle
 points_xy = points_pos_battle
 
@@ -305,7 +304,6 @@ class MainWindow(QMainWindow):
         """
         主要事件
         """
-        global enable_flag
         if event == "screenshot":
             try:
                 self.cur_screenshot = app.primaryScreen().grabWindow(0)
@@ -315,22 +313,22 @@ class MainWindow(QMainWindow):
             try:
                 if self.cur_screenshot:
                     if cur_mode == "battle":
-                        if not enable_flag and self.detect_special_situation("start_battle_detect", ""):
-                            enable_flag = True
-                            self.left_points_label.show()
-                            self.right_points_label.show()
-                        if enable_flag and self.detect_special_situation("end_battle_detect", ""):
-                            enable_flag = False
-                            self.clear_countdown("left")
-                            self.clear_countdown("right")
-                            self.left_points_label.hide()
-                            self.right_points_label.hide()
-                        if enable_flag:
-                            if self.detect_special_situation("next_round_detect", ""):
-                                self.clear_countdown("left")
-                                self.clear_countdown("right")
+                        if self.detect_special_situation("in_battle_detect", ""):
+                            if self.left_points_label.isHidden():
+                                self.left_points_label.show()
+                            if self.right_points_label.isHidden():
+                                self.right_points_label.show()
                             self.detect_points_color_state()
                             self.detect_points_num()
+                        else:
+                            if self.left_points_label.isVisible():
+                                self.left_points_label.hide()
+                            if self.right_points_label.isVisible():
+                                self.right_points_label.hide()
+                        if (self.detect_special_situation("next_round_detect", "") or
+                                self.detect_special_situation("end_battle_detect", "")):
+                            self.clear_countdown("left")
+                            self.clear_countdown("right")
                     elif cur_mode == "exercise":
                         self.detect_points_color_state()
                         self.detect_points_num()
@@ -558,10 +556,10 @@ class MainWindow(QMainWindow):
         """
         检测是否满足特殊情况
         """
-        if situation == "start_battle_detect":
-            xy_list = start_battle_detect["pos"]
-            min_rgb_list = [start_battle_detect["min_rgb"]]
-            max_rgb_list = [start_battle_detect["max_rgb"]]
+        if situation == "in_battle_detect":
+            xy_list = in_battle_detect["pos"]
+            min_rgb_list = [in_battle_detect["min_rgb"]]
+            max_rgb_list = [in_battle_detect["max_rgb"]]
         elif situation == "next_round_detect":
             xy_list = next_round_detect["pos"]
             min_rgb_list = [next_round_detect["min_rgb"]]
