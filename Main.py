@@ -648,9 +648,8 @@ class MainWindow(QMainWindow):
         清空指定侧所有倒计时
         """
         countdowns = self.countdowns[side]
-        for countdown in countdowns:
+        for countdown in list(reversed(countdowns)):
             self.delete_countdown(side, countdown)
-        countdowns.clear()
 
     def delete_countdown(self, side, countdown):
         """
@@ -660,7 +659,6 @@ class MainWindow(QMainWindow):
         timer = countdown.timer
         label = countdown.label
         timer.stop()
-        timer.deleteLater()
         label.hide()
         label.deleteLater()
         if countdown in countdowns:
