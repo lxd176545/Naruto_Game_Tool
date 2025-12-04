@@ -286,12 +286,12 @@ class MainWindow(QMainWindow):
         按键事件
         """
         if event.lower() == customConfig["clear_left_countdown"]:
-            self.remove_countdown("left")
+            self.clear_countdown("left")
         elif event.lower() == customConfig["clear_right_countdown"]:
-            self.remove_countdown("right")
+            self.clear_countdown("right")
         elif event.lower() == customConfig["clear_all_countdown"]:
-            self.remove_countdown("left")
-            self.remove_countdown("right")
+            self.clear_countdown("left")
+            self.clear_countdown("right")
         elif event.lower() == customConfig["close"]:
             close()
 
@@ -317,8 +317,8 @@ class MainWindow(QMainWindow):
                         else:
                             if (self.detect_special_scene("next_round") or
                                     self.detect_special_scene("end_battle")):
-                                self.remove_countdown("left")
-                                self.remove_countdown("right")
+                                self.clear_countdown("left")
+                                self.clear_countdown("right")
                             for side in self.points:
                                 if self.points[side].isVisible():
                                     self.points[side].hide()
@@ -454,8 +454,8 @@ class MainWindow(QMainWindow):
             border-color: {switched_color};
         """)
 
-        self.remove_countdown("left")
-        self.remove_countdown("right")
+        self.clear_countdown("left")
+        self.clear_countdown("right")
         self.update_points("left", 0)
         self.update_points("right", 0)
 
@@ -625,15 +625,14 @@ class MainWindow(QMainWindow):
 
         timer: QTimer = QTimer(self)
         timer.setInterval(100)
-        timer.timeout.connect(lambda: self.update_countdown(side, countdown))
-        timer.start()
-
         countdown = Countdown(
             remaining_time=remaining_time,
             label=label,
             timer=timer
         )
         self.countdowns[side].append(countdown)
+        timer.timeout.connect(lambda: self.update_countdown(side, countdown))
+        timer.start()
 
     def update_countdown(self, side, countdown):
         """
@@ -641,26 +640,31 @@ class MainWindow(QMainWindow):
         """
         countdown.remaining_time = round(countdown.remaining_time - 0.1, 1)
         countdown.label.setText(f"{countdown.remaining_time:.1f}")
-        if countdown.remaining_time < 0.1:
-            QTimer.singleShot(10, lambda: self.remove_countdown(side, countdown))
+        if countdown.remaining_time < 0.01:
+            self.delete_countdown(side, countdown)
 
-    def remove_countdown(self, side, target_countdown=None):
+    def clear_countdown(self, side):
         """
-        移除倒计时：支持删除指定倒计时或清空指定侧所有倒计时
+        清空指定侧所有倒计时
         """
         countdowns = self.countdowns[side]
-        if target_countdown is None:
-            for countdown in countdowns:
-                countdown.label.hide()
-                countdown.label.deleteLater()
-                countdown.timer.stop()
-            countdowns.clear()
-        else:
-            target_countdown.label.hide()
-            target_countdown.label.deleteLater()
-            target_countdown.timer.stop()
-            if target_countdown in countdowns:
-                countdowns.remove(target_countdown)
+        for countdown in countdowns:
+            self.delete_countdown(side, countdown)
+        countdowns.clear()
+
+    def delete_countdown(self, side, countdown):
+        """
+        删除指定倒计时
+        """
+        countdowns = self.countdowns[side]
+        timer = countdown.timer
+        label = countdown.label
+        timer.stop()
+        timer.deleteLater()
+        label.hide()
+        label.deleteLater()
+        if countdown in countdowns:
+            countdowns.remove(countdown)
 
 ########################################################颜色相关#########################################################
 def get_pixel_rgb(image, pixel_x, pixel_y):
